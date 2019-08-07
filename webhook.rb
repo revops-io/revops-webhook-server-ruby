@@ -13,11 +13,19 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+require 'dotenv/load'
 require 'sinatra'
 require 'zuora_api'
 require 'json'
 require 'pp'
 
+# Fail fast if our .env file config is not set
+unless ENV['ZUORA_PASSWORD'] && ENV['ZUORA_PASSWORD'].length > 7
+  warn <<~EOF
+    Must set the ZUORA config in the `.env` file before running this server.
+  EOF
+  exit(1)
+end
 
 post '/' do
   # Parameters -

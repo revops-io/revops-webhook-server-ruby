@@ -1,22 +1,22 @@
-Revops zuora web server
+Revops Webhook Server - Ruby Example
 -----------
 
 This is an example of using integrating the revops webhooks with zuora.
 
-Getting Started
+Installation
 ---------------
 
 To work on the sample code, you'll need to clone your project's repository to your local computer. If you haven't, do that first. You can find a guide [here](https://help.github.com/articles/cloning-a-repository/).
 
-1. Ensure you are using at least ruby version 2.5.x
+1. Ensure you are using a recent version of Ruby. Latest stable is 2.6.3 as of 8/7/2019. We recommend using [rbenv](https://github.com/rbenv/rbenv) for managing your ruby versions.
 
 2. Install bundle
 
-        `gem install bundler`
+        gem install bundler
 
 3. Install Ruby dependencies for this service
 
-        `bundle install`
+        bundle install
 
 4. Edit the `.env` configuration file by supplying your zuora login credentials
 
@@ -24,7 +24,7 @@ To work on the sample code, you'll need to clone your project's repository to yo
 
 You can start the server with: 
 
-        `ruby webhook.rb`
+        ruby webhook.rb
 
 This app uses [Sinatra](http://sinatrarb.com/) 
 

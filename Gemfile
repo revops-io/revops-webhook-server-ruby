@@ -1,7 +1,8 @@
 source 'http://rubygems.org'
 
-gem 'sinatra'
+gem 'dotenv', groups: [:development, :test]
 gem 'json'
+gem 'sinatra'
 gem 'zuora_api'
 
 # These are the dependencies that are used only for unit tests.

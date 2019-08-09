@@ -15,9 +15,13 @@
 
 require 'dotenv/load'
 require 'sinatra'
+require 'sinatra/reloader'
 require 'zuora_api'
 require 'json'
 require 'pp'
+require 'logger'
+require_relative 'zuora_helpers'
+Rails.logger = Logger.new(STDOUT)
 
 # Fail fast if our .env file config is not set
 unless ENV['ZUORA_PASSWORD'] && ENV['ZUORA_PASSWORD'].length > 7
@@ -27,10 +31,38 @@ unless ENV['ZUORA_PASSWORD'] && ENV['ZUORA_PASSWORD'].length > 7
   exit(1)
 end
 
+get '/' do
+  body = "<h1>Congrats on starting the journey to connect Zuora to RevOps!</h1>
+  <h2>Point your webhook to: %s</h2>"
+
+  return body % [request.env['REQUEST_URI']]
+end
+
 post '/' do
   # Parameters -
+  @zuora_client = ZuoraAPI::Oauth.new(
+    oauth_client_id: ENV['ZUORA_LOGIN'],
+    oauth_secret: ENV['ZUORA_PASSWORD'],
+    url: ENV['ZUORA_ENV'] != "production"?
+      'https://rest.apisandbox.zuora.com'
+      : 'https://rest.zuora.com',
+  )
+
+  # Handle the incoming webhook request body
   @request_payload = JSON.parse(request.body.read)
-  pp(@request_payload)
+  deal = @request_payload['deal']
+
+  # When deal.customer comes through, we can create or update accounts.
+  # zuora_create_account(@zuora_client)
+
+  skus = deal['skus']
+  if skus.length > 0
+    pp "Automatically building SKUS..."
+    skus.map { |sku|
+      zuora_create_product(@zuora_client, sku['id'], sku['name'], sku['description'])
+    }
+    pp "%s updated." % skus.length
+  end
 
   return "test"
 end

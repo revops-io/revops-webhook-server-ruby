@@ -39,30 +39,67 @@ get '/' do
 end
 
 post '/' do
-  # Parameters -
-  @zuora_client = ZuoraAPI::Oauth.new(
-    oauth_client_id: ENV['ZUORA_LOGIN'],
-    oauth_secret: ENV['ZUORA_PASSWORD'],
-    url: ENV['ZUORA_ENV'] != "production"?
-      'https://rest.apisandbox.zuora.com'
-      : 'https://rest.zuora.com',
-  )
+  content_type :json
 
   # Handle the incoming webhook request body
   @request_payload = JSON.parse(request.body.read)
   deal = @request_payload['deal']
+  deal_status = deal['status']
+  deal_id = deal['id']
 
+  if deal_status != 'signed'
+    return {
+      'message': 'Deal not signed yet, nothing to do for %s' % deal_id
+    }.to_json
+  end
+
+  # Create account, products, plans, and subscription
+  message = complete_signed_workflow(deal)
+
+  return {
+    'message': message
+  }.to_json
+end
+
+def complete_signed_workflow(deal)
+  @zuora_client = zuora_init
+  pp deal['customer']
   # When deal.customer comes through, we can create or update accounts.
-  # zuora_create_account(@zuora_client)
+  account = zuora_create_account(@zuora_client, deal, "USD")
+
+  if account == false
+    return "Unable to complete signed workflow operation."
+  end
 
   skus = deal['skus']
   if skus.length > 0
     pp "Automatically building SKUS..."
     skus.map { |sku|
-      zuora_create_product(@zuora_client, sku['id'], sku['name'], sku['description'])
+      product = zuora_create_product(@zuora_client, sku['id'], sku['friendly_name'], sku['description'])
+
+      # Create ProductRatePlan
+      plan = zuora_create_plan(@zuora_client,
+        product,
+        sku,
+      )
+
+      # Create UnitOfMeasure object
+      plan_uom = zuora_create_uom(@zuora_client,
+        sku
+      )
+
+      # Create ProductRatePlanCharge - This is where pricing is set by default.
+      plan_charge = zuora_create_plan_charge(@zuora_client,
+        product,
+        sku,
+        plan,
+      )
+
+      # TODO: Create Subscription for Customer
+      pp plan_charge
     }
     pp "%s updated." % skus.length
   end
 
-  return "test"
+  return 'Created Zuora Plan for %s' % deal['id']
 end

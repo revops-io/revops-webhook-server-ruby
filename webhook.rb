@@ -72,10 +72,13 @@ def complete_signed_workflow(deal)
   end
 
   skus = deal['skus']
+  subscribe_to_plans = {}
+
   if skus.length > 0
     pp "Automatically building SKUS..."
     skus.map { |sku|
-      product = zuora_create_product(@zuora_client, sku['id'], sku['friendly_name'], sku['description'])
+      product = zuora_create_product(@zuora_client,
+        sku['id'], sku['friendly_name'], sku['description'])
 
       # Create ProductRatePlan
       plan = zuora_create_plan(@zuora_client,
@@ -95,11 +98,28 @@ def complete_signed_workflow(deal)
         plan,
       )
 
-      # TODO: Create Subscription for Customer
-      pp plan_charge
+      ## Add plan to subscription
+      subscribe_to_plans[plan['id']] = {
+        :plan_id => plan['id'],
+        :plan_charge_id => plan_charge['id'],
+        :plan => plan,
+        :plan_charge => plan_charge,
+      }
+
     }
     pp "%s updated." % skus.length
   end
 
-  return 'Created Zuora Plan for %s' % deal['id']
+  # Create Subscription for Customer
+  subscription = zuora_create_subscription(@zuora_client,
+    deal,
+    account,
+    subscribe_to_plans,
+  )
+
+  if subscription == false
+    return "Unable to create Zuora Subscription."
+  end
+
+  return "Created Zuora Subscription for #{subscription['id']}."
 end
